@@ -155,6 +155,24 @@ VALUES
 (3, 'O Lobo de Wall Street', 'The Wolf of Wall Street', 2013, 3, 'A história de um corretor de ações.', 2),
 (4, 'Pulp Fiction', 'Pulp Fiction' ,1994 ,4,'Enredos conectados de crime!', 3)
 
+
+-- Inserindo salas
+INSERT INTO sala (idSala, nome, capacidade)
+VALUES 
+(1, 'Sala IMAX', 200),
+(2, 'Sala 3D', 150),
+(3, 'Sala VIP', 100),
+(4, 'Sala Tradicional', 120),
+(5, 'Sala Premium', 180);
+
+-- Associando filmes a salas e horários
+INSERT INTO filme_exibido_sala (filme_idfilme, sala_idSala, horario_idhorario)
+VALUES 
+(1, 1, 1),
+(2, 2, 2),
+(3, 3, 3),
+(4, 4, 4);
+
 --------------------- Selects ---------------------
 
 -- 1. Retornar a média dos salários dos funcionários
@@ -239,18 +257,19 @@ LEFT JOIN horario_trabalho_funcionario htf ON f.idfuncao = htf.idfuncao
 GROUP BY f.idfuncao, f.nome;
 
 -- 13. Encontrar os filmes que foram exibidos em salas com capacidade superior à média de todas as salas
-SELECT DISTINCT f.nomeBR
-FROM filme f
-JOIN filme_exibido_sala fes ON f.idfilme = fes.filme_idfilme
-JOIN sala s ON fes.sala_idSala = s.idSala
-WHERE s.capacidade > (SELECT AVG(capacidade) FROM sala);
+select f.nomeBR, s.nome as sala, s.capacidade
+from filme_exibido_sala fs
+join sala s on fs.sala_idSala = s.idSala
+join filme f on fs.filme_idfilme = f.idfilme
+where s.capacidade > (select avg(capacidade) from sala);
 
 -- 14. Calcular o salário anual dos funcionários (considerando 12 meses)
 SELECT nome, salario as salario_mensal, (salario * 12) as salario_anual
 FROM funcionario;
 
 -- 15. Exibir a relação entre a capacidade da sala e o número total de filmes exibidos nela
-SELECT s.nome as sala, s.capacidade, COUNT(DISTINCT fes.filme_idfilme) as total_filmes
-FROM sala s
-LEFT JOIN filme_exibido_sala fes ON s.idSala = fes.sala_idSala
-GROUP BY s.idSala, s.nome, s.capacidade;
+select s.nome as sala, s.capacidade, count (fs.filme_idfilme) as total_filmes,
+(count(fs.filme_idfilme) / nullif(s.capacidade, 0)) as filmes_por_assento
+from sala s
+left join filme_exibido_sala fs on s.idSala = fs.sala_idSala
+group by s.idsala, s.capacidade;
