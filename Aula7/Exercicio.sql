@@ -158,3 +158,27 @@ end;
 $$ language plpgsql;
 
 select obter_dependente(123);
+
+
+-- 8. Função com Exception que retorna o salário de um empregado dado o CPF
+create or replace function SalarioEmpregado(p_CPF integer) returns float as $$
+declare
+    salario float;
+begin
+    begin
+        select Salario into salario from Empregado where CPF = p_CPF;
+
+/*         if salario is null then
+            raise exception 'CPF não encontrado';
+        end if;
+        return salario; */
+    exception
+        when others then
+            raise notice 'Erro ao buscar salário: %', SQLERRM;
+        return null;
+    end;
+end;
+$$ language plpgsql;
+
+select SalarioEmpregado(123);
+

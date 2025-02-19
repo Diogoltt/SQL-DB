@@ -147,3 +147,78 @@ $$ language plpgsql;
 call Transferir_Software(2, 2, 3);
 
 -- 6. Crie uma função Media_Recursos que retorna a média de Memória RAM e HardDisk de todas as maquinas cadastradas
+
+drop function Media_Recursos();
+
+create or replace function Media_Recursos() returns table(
+    media_ram numeric,
+    media_hd numeric
+) as $$
+begin
+    return query
+    select round(avg(Memoria_Ram), 2) as media_ram, round(avg(HardDisk), 2) as media_hd from Maquina;
+end;
+$$ language plpgsql;
+
+select * from Media_Recursos();
+
+
+-- 7. 
+create or replace procedure Diagnostico_Maquina(p_Id_Maquina integer) as $$
+declare
+    Total_Ram_Requerido integer;
+    Total_HD_Requerido integer;
+    Ram_Atual integer;
+    HD_Atual integer;
+    Ram_Upgrade integer;
+    HD_Upgrade integer;
+begin
+    -- Obter a soma dos requisitos minimos dos softwares instalados na maquina
+    select
+        coalesce(sum(Memoria_Ram), 0),
+        coalesce(sum(HardDisk), 0)
+    into
+        Total_Ram_Requerido,
+        Total_HD_Requerido
+    from
+        software
+    where
+        Fk_Maquina = p_Id_Maquina;
+    
+    -- Obter a quantidade de ram e hd atuais
+    select
+        Memoria_Ram,
+        HardDisk
+    into
+        Ram_Atual,
+        HD_Atual
+    from
+        maquina
+    WHERE
+        Id_Maquina = p_Id_Maquina;
+
+    -- Expcetion para maquina não encontrada
+    if not found then
+        raise notice 'Maquina não encontrada';
+    end if;
+
+    -- Verificar se a maquina tem recursos suficientes
+    if Ram_Atual >= Total_Ram_Requerido and HD_Atual >= Total_HD_Requerido then
+        raise notice 'Maquina % tem recursos suficientes e não precisa de upgrade', p_Id_Maquina;
+    else
+        -- Calcula a necessidade de upgrade
+        Ram_Upgrade := Greatest(0, Total_Ram_Requerido - Ram_Atual); -- Retorna o maior valor
+        HD_Upgrade := Greatest(0, Total_HD_Requerido - HD_Atual); -- Retorna o maior valor
+
+        if Ram_Upgrade > 0 then
+            raise notice 'Recomendado upgrade de % GB de Ram', Ram_Upgrade;
+        end if;
+
+        if HD_Upgrade > 0 then
+            raise notice 'Recomendado upgrade de % GB de Ram', HD_Upgrade;
+        end if;
+    end if;
+end;
+$$ language plpgsql;
+
+call Diagnostico_Maquina(3);
